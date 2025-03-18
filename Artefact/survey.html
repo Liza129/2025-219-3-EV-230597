@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey</title>
+  </head>
+  <body>
+    <br />
+    <br />
+    <h2>Please complete survey below</h2>
+    <!-- Create a form and  dropdown options for user to select answers -->
+    <div class="main">
+      <div class="form_class">
+        <form id="form">
+          <div class="input_class">
+            <label for="name" class="form_label">Name</label>
+            <!-- Give an id to each option for the further use -->
+
+            <!-- string input -->
+            <input
+              type="text"
+              name="name"
+              id="name"
+              placeholder="Enter your name"
+              class="form_input"
+            />
+            <p id="demo2"></p>
+
+            <br />
+
+            <br />
+          </div>
+
+          <div class="input_class">
+            <label for="age" class="form_label">Age</label>
+            <!-- integer input -->
+            <input
+              type="int"
+              name="age"
+              id="age"
+              placeholder="Enter your age"
+              class="form_input"
+            />
+            <p id="demo"></p>
+
+            <br />
+
+            <br />
+          </div>
+
+          <div class="input_class">
+            <label class="form_label"> Which option best describes you? </label>
+            <!-- option -->
+            <select class="form_select" name="occupation" id="occupation">
+              <option value="Student">Student</option>
+              <option value="Pre-school">Pre-school</option>
+
+              <option value="Employed">Employed or retired</option>
+            </select>
+          </div>
+
+          <div class="input_radio">
+            <label for="ans" class="form_label"> Do you live in the EU? </label>
+            <!-- boolean input -->
+            <div class="radio_flex">
+              <div class="radio_group">
+                <label class="radio_label">
+                  <input
+                    class="input_radio"
+                    type="radio"
+                    name="ans"
+                    value="true"
+                  />
+                  Yes
+                  <span class="radio_check"></span>
+                </label>
+              </div>
+
+              <div class="radio_group">
+                <label class="radio_label">
+                  <input
+                    class="input_radio"
+                    type="radio"
+                    name="ans"
+                    value="false"
+                  />
+                  No
+                  <span class="radio_check"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="message" class="form_label">
+              Any comments or suggestions
+            </label>
+            <!-- string input -->
+            <textarea
+              rows="6"
+              name="message"
+              id="message"
+              placeholder="Type here..."
+              class="form_input"
+            ></textarea>
+          </div>
+          <!-- submit button, when all questions are answered -->
+          <button class="btn" id="button" type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
+    <h2>Results out of all users serveyed</h2>
+    <div id="results">
+      <!-- show output to user -->
+      <p>
+        Average Age:
+        <span id="average-age"></span>
+        years
+      </p>
+      <p>
+        Student:
+        <span id="student-percentage"></span>
+      </p>
+      <p>
+        Pre-school:
+        <span id="preschool-percentage"></span>
+      </p>
+      <p>
+        Employed or retired:
+        <span id="employed-percentage"></span>
+      </p>
+
+      <p>
+        EU:
+        <span id="eu-percentage"></span>
+      </p>
+      <p>
+        Non-EU:
+        <span id="non-eu-percentage"></span>
+      </p>
+    </div>
+    <!-- firebase details -->
+    <script type="module">
+      const firebaseConfig = {
+        apiKey: "AIzaSyBo09pzOIuLbr44sJU087CeQvK21n60yHs",
+        authDomain: "project-cb978.firebaseapp.com",
+        databaseURL:
+          "https://project-cb978-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "project-cb978",
+        storageBucket: "project-cb978.firebasestorage.app",
+        messagingSenderId: "396597845049",
+        appId: "1:81524826446:web:596f420c323372555ebe1f",
+      };
+
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+      const app = initializeApp(firebaseConfig);
+      import {
+        getDatabase,
+        ref,
+        set,
+        get,
+        update,
+        child,
+        query,
+        orderByChild,
+        push,
+      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+      const database = getDatabase();
+      const firebaseRef = ref(database);
+
+      //Function for validation. It makes sure the input in age question is integer, otherwise displays error massege and does not send the form
+      function myFunction(event) {
+        event.preventDefault();
+        // Get the value of the input field with id="age"
+        let x = document.getElementById("age").value;
+        let name_y = document.getElementById("name").value;
+        let text2;
+        // If x is Not a Number
+        let text;
+        x = parseFloat(x);
+        if (!(typeof name_y === "string" && /^[A-Za-z\s]+$/.test(name_y))) {
+          text2 = "Invalid input!! Find your pasport and enter your name!";
+          document.getElementById("demo2").innerHTML = text2;
+        } else if (isNaN(x) || x <= 0 || x > 250 || !Number.isInteger(x)) {
+          text2 = "";
+          text = "Invalid input!! Enter a natural number less than 250!";
+          document.getElementById("demo").innerHTML = text;
+          document.getElementById("demo2").innerHTML = text2;
+        } else {
+          text = "";
+          text2 = "";
+          document.getElementById("demo").innerHTML = text;
+          document.getElementById("demo2").innerHTML = text2;
+          Updatingdatabase();
+        }
+      }
+
+      function Updatingdatabase() {
+        //sends user data to firebase
+        let newRecord = {};
+        let name = document.getElementById("name");
+        let selectedRadio = document.querySelector('input[name="ans"]:checked');
+
+        //convert each input into correct type
+        if (selectedRadio) {
+          newRecord["eu"] = selectedRadio.value === "true";
+        } else {
+          newRecord["eu"] = null;
+        }
+        let age = document.getElementById("age");
+        let option = document.getElementById("occupation");
+        let comment = document.getElementById("message");
+        //if nothing was entered set value to null, so it won't be included in the calculations and prevent errors
+        newRecord["name"] = name.value.trim() ? name.value : null; //if ?, :else
+        newRecord["age"] = parseInt(age.value, 10) || null;
+        newRecord["option"] = option.value.trim() ? option.value : null; //trim = strip in python
+        newRecord["comment"] = comment.value.trim() ? comment.value : null; //trim value to avoid whitespaces
+
+        push(ref(database, "/User"), newRecord);
+        getting_from_firebase();
+      }
+
+      //event listener which calls myFunction which callas the Updatingdatabase() when submit button is pressed
+      let formsubmission = document.getElementById("form");
+      formsubmission.addEventListener("submit", myFunction);
+
+      const name_l = [];
+      const age_l = [];
+      const comment_l = [];
+      const eu_l = [];
+      const option_l = [];
+      function getting_from_firebase() {
+        //Get data of all the users and store it in variables
+        get(child(firebaseRef, "/"))
+          .then((snapshot) => {
+            if (snapshot.exists()) {
+              const data = snapshot.val();
+              for (let [key, value] of Object.entries(data)) {
+                if (key === "User") {
+                  for (let userKey in value) {
+                    let userData = value[userKey];
+
+                    name_l.push(userData.name || null); //if there is no value, push null to prevent errors
+                    age_l.push(userData.age || null);
+                    comment_l.push(userData.comment || null);
+                    eu_l.push(userData.eu !== undefined ? userData.eu : null);
+                    option_l.push(userData.option || null);
+                  }
+                }
+              }
+              const averageAge = calculateAverageAge(age_l);
+              const studentPercentage = calculatecategPercentage(
+                option_l,
+                "Student"
+              );
+              const preschoolPercentage = calculatecategPercentage(
+                option_l,
+                "Pre-school"
+              );
+              const employedPercentage = calculatecategPercentage(
+                option_l,
+                "Employed"
+              );
+
+              const euPercentage = calculateEuPercentage(eu_l);
+              const nonEuPercentage = calculateEuPercentage(eu_l, false);
+
+              //round up values to zero decimals and add percentage sign
+              document.getElementById("average-age").textContent =
+                averageAge.toFixed(0);
+              document.getElementById("student-percentage").textContent =
+                studentPercentage.toFixed(0) + "%";
+              document.getElementById("preschool-percentage").textContent =
+                preschoolPercentage.toFixed(0) + "%";
+              document.getElementById("employed-percentage").textContent =
+                employedPercentage.toFixed(0) + "%";
+
+              document.getElementById("eu-percentage").textContent =
+                euPercentage.toFixed(0) + "%";
+              document.getElementById("non-eu-percentage").textContent =
+                nonEuPercentage.toFixed(0) + "%";
+            }
+          })
+          .catch((error) => {
+            console.error("Error", error);
+          });
+      }
+      //call function first to show current statistics
+      getting_from_firebase();
+      function calculateAverageAge(ages) {
+        //calculates the avarage age of all users
+        if (ages.length === 0) {
+          return 0;
+        }
+
+        let filtered_ages = [];
+        for (let i = 0; i < ages.length; i++) {
+          if (ages[i] !== null && ages[i] !== undefined) {
+            filtered_ages.push(ages[i]);
+          }
+        }
+
+        if (filtered_ages.length === 0) {
+          return 0;
+        }
+
+        let sum = 0;
+
+        for (let i = 0; i < filtered_ages.length; i++) {
+          sum = sum + filtered_ages[i];
+        }
+        return sum / filtered_ages.length;
+      }
+
+      function calculatecategPercentage(options, categ) {
+        //calculates the percentage of users who chose options: Student, Pre-school or Employed
+        if (options.length === 0) {
+          return 0;
+        }
+        let filt_opt = [];
+        for (let i = 0; i < options.length; i++) {
+          if (options[i] !== null && options[i] !== undefined) {
+            filt_opt.push(options[i]);
+          }
+        }
+
+        let count = 0;
+        for (let i = 0; i < filt_opt.length; i++) {
+          if (filt_opt[i] === categ) {
+            count++;
+          }
+        }
+        return (count / filt_opt.length) * 100;
+      }
+
+      function calculateEuPercentage(eu_l, isEu = true) {
+        //calculates the the percentage of users who chose options: EU or Non EU
+        if (eu_l.length == 0) {
+          return 0;
+        }
+        let filteredEu = [];
+        for (let i = 0; i < eu_l.length; i++) {
+          if (eu_l[i] !== null && eu_l[i] !== undefined) {
+            //console.log(eu_l[i])
+            filteredEu.push(eu_l[i]);
+          }
+        }
+
+        let count = 0;
+        for (let i = 0; i < filteredEu.length; i++) {
+          if (filteredEu[i] === isEu) {
+            count++;
+          }
+        }
+
+        let output = (count / filteredEu.length) * 100;
+
+        if (isNaN(output)) {
+          return 0;
+        } else {
+          return output;
+        }
+      }
+    </script>
+
+    <style>
+      /*add simple design*/
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+      /* heading design */
+      h2 {
+        font-size: 24px;
+        color: #333;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      /* result box design */
+      #results {
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        margin-top: 20px;
+      }
+
+      #results p {
+        font-size: 16px;
+        color: #414040;
+        margin: 15px 0;
+      }
+
+      #results p span {
+        font-weight: bold;
+        color: #254475;
+        /* show calculated values in blue */
+      }
+
+      .form_class {
+        /* box around questions */
+        max-width: 500px;
+        margin: 20px auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px blue;
+        margin-bottom: 20px;
+        margin-top: 20px;
+      }
+
+      .form_input,
+      .form_select {
+        /* select dropdown */
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+      .radio_flex {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        margin-bottom: 20px;
+        margin-top: 20px;
+      }
+      .btn {
+        /* button */
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        background-color: #254373;
+        color: white;
+        font-size: 16px;
+      }
+      /* when the user hovers their mouse pointer on the button */
+      .btn:hover {
+        background-color: #18601c;
+      }
+      /* text for invalid numbers */
+      #demo,
+      #demo2 {
+        color: red;
+      }
+    </style>
+  </body>
+</html>
